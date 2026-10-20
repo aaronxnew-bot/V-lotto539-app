@@ -65,8 +65,7 @@ def analyze_and_filter_539_v7(history_data, hot_pool_size, cool_pool_size, req_h
     total_numbers = 39
     all_numbers = list(range(1, total_numbers + 1))
     
-    # 📌 獨家優化：近100期「相剋號碼對」動態演算庫 (拖牌避險)
-    # 計算任意兩個號碼同時開出的歷史次數，若為0次，則兩號視為相剋
+    # 相剋號碼演算庫
     co_occurrence = np.zeros((total_numbers + 1, total_numbers + 1))
     for period in active_data:
         for n1, n2 in combinations(period, 2):
@@ -76,7 +75,7 @@ def analyze_and_filter_539_v7(history_data, hot_pool_size, cool_pool_size, req_h
     clash_pairs = set()
     for i in range(1, total_numbers + 1):
         for j in range(i + 1, total_numbers + 1):
-            if co_occurrence[i][j] == 0: # 歷史 100 期完全沒同開過
+            if co_occurrence[i][j] == 0:
                 clash_pairs.add((i, j))
     
     # 尾數加權
@@ -141,24 +140,16 @@ def analyze_and_filter_539_v7(history_data, hot_pool_size, cool_pool_size, req_h
     cool_pool = master_numbers[-cool_pool_size:]       
     top_15_nums = master_numbers[:15]
 
-    # V7 精密五重過濾（含相剋過濾）
-    clash_filtered_count = 0
+    # V7 精密五重過濾
     def smart_filter_v7(combination):
-        nonlocal clash_filtered_count
-        # 1. 🚨 V7 相剋號碼過濾限制 (核心新增)
         for n1, n2 in combinations(combination, 2):
             if (n1, n2) in clash_pairs or (n2, n1) in clash_pairs:
-                clash_filtered_count += 1
                 return False
-        # 2. 動態冷熱配比
         if sum(1 for n in combination if n in hot_pool) != req_hot: return False
         if sum(1 for n in combination if n in cool_pool) != req_cool: return False
-        # 3. 大小/奇偶 (2:3 或 3:2)
-        if sum(1 for n in combination if n <= 19) not in : return False
-        if sum(1 for n in combination if n % 2 != 0) not in : return False
-        # 4. 黃金和值 (80~120)
+        if sum(1 for n in combination if n <= 19) not in: return False
+        if sum(1 for n in combination if n % 2 != 0) not in: return False
         if not (80 <= sum(combination) <= 120): return False
-        # 5. 連號限制 (<= 3碼)
         sorted_combo = sorted(combination)
         max_c, cur_c = 1, 1
         for i in range(len(sorted_combo) - 1):
@@ -174,7 +165,7 @@ def analyze_and_filter_539_v7(history_data, hot_pool_size, cool_pool_size, req_h
     return valid_combos, hot_pool, cool_pool, len(all_combos), clash_pairs
 
 # =====================================================================
-# ⚙️ Streamlit 手機前端配置
+# ⚙️ Streamlit 前端
 # =====================================================================
 st.sidebar.header("⚙️ V7 避險實驗版參數控制欄")
 h_size = st.sidebar.slider("熱門特徵池大小 (6~12碼)", 6, 12, 8)
@@ -195,10 +186,9 @@ if st.sidebar.button("🚀 啟動 V7 相剋避險精密算力"):
         for i, c in enumerate(valid_combos[:5], 1):
             st.markdown(f"🛒 **推薦第 {i} 組：** ` {', '.join(f'{n:02d}' for n in c)} ` (和值: {sum(c)})")
             
-        # 儲存預測以便明晚自動對獎
         new_records = [{'period': str(int(current_period) + 1), 'n1': c, 'n2': c, 'n3': c, 'n4': c, 'n5': c, 'is_checked': False, 'matches': 0} for c in valid_combos[:5]]
         if os.path.exists(RECORD_FILE):
-            new_records = pd.concat([pd.read_csv(RECORD_FILE, dtype={'period': str}), pd.DataFrame(new_records)], ignore_index=True).to_csv(RECORD_FILE, index=False)
+            pd.concat([pd.read_csv(RECORD_FILE, dtype={'period': str}), pd.DataFrame(new_records)], ignore_index=True).to_csv(RECORD_FILE, index=False)
         else:
             pd.DataFrame(new_records).to_csv(RECORD_FILE, index=False)
         st.success("💾 預測注單已同步鎖定，明晚 8:30 手機打開本網頁將自動進行『彈出慶祝氣球對獎』。")
