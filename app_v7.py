@@ -147,8 +147,8 @@ def analyze_and_filter_539_v7(history_data, hot_pool_size, cool_pool_size, req_h
                 return False
         if sum(1 for n in combination if n in hot_pool) != req_hot: return False
         if sum(1 for n in combination if n in cool_pool) != req_cool: return False
-        if sum(1 for n in combination if n <= 19) not in: return False
-        if sum(1 for n in combination if n % 2 != 0) not in: return False
+        if sum(1 for n in combination if n <= 19) not in (2, 3): return False
+        if sum(1 for n in combination if n % 2 != 0) not in (2, 3): return False
         if not (80 <= sum(combination) <= 120): return False
         sorted_combo = sorted(combination)
         max_c, cur_c = 1, 1
